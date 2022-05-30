@@ -23,7 +23,7 @@ reserved = [
     "SLEEP", "END", "LIST", "REM", "READ",
     "WRITE", "APPEND", "RUN", "CLS", "CLEAR",
     "EXIT", "LOAD", "SAVE", "THEN", "ELSE",
-    "FOR", "TO", "DO"
+    "FOR", "TO", "DO", "GOSUB", "RETURN"
 ]
 
 operators = [
@@ -45,7 +45,8 @@ lines = {}
 maxLine = 0
 linePointer = 0
 stopExecution = False
-identifiers = {}
+identifiers = [{}]
+returnPos = []
 printReady = True
 
 def main():
@@ -154,7 +155,7 @@ def lex(line):
     return tokens
 
 def executeTokens(tokens):
-    global lines, maxLine, stopExecution, linePointer, printReady, identifiers
+    global lines, maxLine, stopExecution, linePointer, printReady, identifiers, returnPos
     printReady = True
     if tokens[0][1] == "NUM":
         lineNumber = int(tokens.pop(0)[0])
@@ -183,7 +184,8 @@ def executeTokens(tokens):
         elif command == "CLEAR":
             maxLine = 0
             lines = {}
-            identifiers = {}
+            identifiers = [{}]
+            returnPos = []
         elif command == "LIST":
             i = 0
             while i <= maxLine:
@@ -214,6 +216,9 @@ def executeTokens(tokens):
             if not(forHandler(tokens[1:])): stopExecution = True
         elif command == "RUN":
             linePointer = 0
+            # bug fixed: clear identifiers before execution
+            identifiers = [{}]
+            returnPos = []
             while linePointer <= maxLine:
                 if linePointer in lines:
                     executeTokens(lines[linePointer])
@@ -222,11 +227,19 @@ def executeTokens(tokens):
                         break
                 linePointer = linePointer + 1
             # bug fixed: clear identifiers after execution
-            identifiers = {}
+            identifiers = [{}]
+            returnPos = []
         elif command == "SAVE":
             if not(saveHandler(tokens[1:])): stopExecution = True
         elif command == "LOAD":
             if not(loadHandler(tokens[1:])): stopExecution = True
+        elif command == "GOSUB":
+            if not(gosubHandler(tokens[1:])): stopExecution = True
+        elif command == "RETURN":
+            if len(tokens) != 1:
+                print("Error: Invalid return command.")
+                stopExecution = True
+            if not(returnHandler()): stopExecution = True
 
 
 def getNumberPrintFormat(num):
@@ -310,6 +323,29 @@ def gotoHandler(tokens):
         linePointer = newNumber[0] - 1
     return True
 
+def gosubHandler(tokens):
+    global linePointer, identifiers, returnPos
+    if len(tokens) == 0:
+        print("Error: Expected expression.")
+        return
+    newNumber = solveExpression(tokens, 0)
+    if newNumber[1] != "NUM":
+        print("Error: Line number expected.")
+    else:
+        returnPos.insert(0, linePointer)
+        identifiers.insert(0, {})
+        linePointer = newNumber[0] - 1
+    return True
+
+def returnHandler():
+    global linePointer, identifiers, returnPos
+    if len(returnPos) == 0:
+        print("Error: Not in a subroutine.")
+        return
+    linePointer = returnPos.pop(0)
+    identifiers.pop(0)
+    return True
+
 def inputHandler(tokens):
     varName = None
     if len(tokens) == 0:
@@ -326,12 +362,12 @@ def inputHandler(tokens):
         print("?", end = '')
         varValue = input()
         if getVarType(varName) == "STRING":
-            identifiers[varName] = [varValue, "STRING"]
+            identifiers[0][varName] = [varValue, "STRING"]
             break
         else:
             if is_number(varValue):
                 # bug fixed: varValue -> float(varValue)
-                identifiers[varName] = [float(varValue), "NUM"] 
+                identifiers[0][varName] = [float(varValue), "NUM"] 
                 break
             else:
                 print("Try again.")
@@ -429,7 +465,7 @@ def letHandler(tokens):
     if getVarType(varName) != varValue[1]:
         print(f"Error: Variable {varName} type mismatch.")
         return
-    identifiers[varName] = varValue
+    identifiers[0][varName] = varValue
     return True
 
 def printHandler(tokens):
@@ -445,7 +481,7 @@ def printHandler(tokens):
     return True
 
 def getIdentifierValue(name):
-    return identifiers[name]
+    return identifiers[0][name]
 
 def solveExpression(tokens, level):
     leftSideValues = []
@@ -650,7 +686,7 @@ def solveExpression(tokens, level):
             print("Error: Operator expected.")
             return None
         elif tokens[0][1] == "ID":
-            if tokens[0][0] in identifiers:
+            if tokens[0][0] in identifiers[0]:
                 return getIdentifierValue(tokens[0][0])
             else:
                 print(f"Error: Variable {tokens[0][0]} not initialized.")
