@@ -23,8 +23,15 @@ reserved = [
     "SLEEP", "END", "LIST", "REM", "READ",
     "WRITE", "APPEND", "RUN", "CLS", "CLEAR",
     "EXIT", "LOAD", "SAVE", "THEN", "ELSE",
-    "FOR", "TO", "DO", "GOSUB", "RETURN"
+    "FOR", "TO", "DO", "GOSUB", "RETURN",
+    "STA", "STS", "STT", "LDA", "LDS", "LDT", "DIR"
 ]
+
+registers = {
+    "A": 0,
+    "S": 0,
+    "T": 0,
+}
 
 operators = [
     ["==", "!=", ">", "<", ">=", "<="],
@@ -52,6 +59,7 @@ printReady = True
 def main():
     global stopExecution
     print(f"Tiny BASIC version {VERSION}\nby Jeffrey Chen")
+    print("\n<Based on Tiny BASIC version 1 by Chung-Yuan Huang>\n")
     while True:
             try:
                 if printReady:
@@ -76,6 +84,21 @@ def main():
                 funcName = lastCallStack[2] #取得發生的函數名稱
                 errMsg = "File \"{}\", line {}, in {}: [{}] {}".format(fileName, lineNum, funcName, error_class, detail)
                 print("\nExecution halted:\n"+errMsg)
+
+def clearLines():
+    global lines, maxLine
+    lines = {}
+    maxLine = 0
+
+def resetExcution():
+    global identifiers, returnPos, registers
+    identifiers = [{}]
+    returnPos = []
+    registers = {
+        "A": 0,
+        "S": 0,
+        "T": 0,
+    }
 
 def is_number(s):
     try:
@@ -140,7 +163,7 @@ def lex(line):
         elif value.upper() in reserved:
             token[0] = value.upper()
             token[1] = "RESVD" #Reserved word
-        elif value.upper() in constants:
+        elif value in constants:
             token[0] = constants[value.upper()]
             token[1] = "NUM" #Constant
         elif value == "=":
@@ -182,10 +205,10 @@ def executeTokens(tokens):
         elif command == "EXIT":
             quit()
         elif command == "CLEAR":
-            maxLine = 0
-            lines = {}
-            identifiers = [{}]
-            returnPos = []
+            clearLines()
+            resetExcution()
+        elif command == "DIR":
+            print(identifiers[0])
         elif command == "LIST":
             i = 0
             while i <= maxLine:
@@ -217,8 +240,7 @@ def executeTokens(tokens):
         elif command == "RUN":
             linePointer = 0
             # bug fixed: clear identifiers before execution
-            identifiers = [{}]
-            returnPos = []
+            resetExcution()
             while linePointer <= maxLine:
                 if linePointer in lines:
                     executeTokens(lines[linePointer])
@@ -227,8 +249,7 @@ def executeTokens(tokens):
                         break
                 linePointer = linePointer + 1
             # bug fixed: clear identifiers after execution
-            identifiers = [{}]
-            returnPos = []
+            resetExcution()
         elif command == "SAVE":
             if not(saveHandler(tokens[1:])): stopExecution = True
         elif command == "LOAD":
@@ -240,6 +261,18 @@ def executeTokens(tokens):
                 print("Error: Invalid return command.")
                 stopExecution = True
             if not(returnHandler()): stopExecution = True
+        elif command == "STA":
+            if not(staHandler(tokens[1:])): stopExecution = True
+        elif command == "LDA":
+            if not(ldaHandler(tokens[1:])): stopExecution = True
+        elif command == "STS":
+            if not(stsHandler(tokens[1:])): stopExecution = True
+        elif command == "LDS":
+            if not(ldsHandler(tokens[1:])): stopExecution = True
+        elif command == "STT":
+            if not(sttHandler(tokens[1:])): stopExecution = True
+        elif command == "LDT":
+            if not(ldtHandler(tokens[1:])): stopExecution = True
 
 
 def getNumberPrintFormat(num):
@@ -289,8 +322,7 @@ def loadHandler(tokens):
         filename = filename + '.tb'
     try:
         with open(filename, 'r') as f:
-            lines = {}
-            maxLine = 0
+            clearLines()
             for line in f:
                 tokens = lex(line.strip())
                 if len(tokens) == 0:
@@ -415,7 +447,7 @@ def forHandler(tokens):
     if toPos == None or doPos == None or toPos > doPos:
         print("Error: Malformed FOR statement.")
         return 
-    globalIdentifiers = identifiers.copy()
+    globalIdentifiers = identifiers[0].copy()
     executeTokens([["LET", "RESVD"]] + tokens[0:toPos])
     endValue = solveExpression(tokens[toPos+1:doPos], 0)
     if endValue == None:
@@ -428,7 +460,7 @@ def forHandler(tokens):
         executeTokens(tokens[doPos+1:])
         tokens[toPos - 1][0] += 1
         executeTokens([["LET", "RESVD"]] + tokens[0:toPos])
-    identifiers = globalIdentifiers
+    identifiers[0] = globalIdentifiers
     return True
 
 def letHandler(tokens):
@@ -475,9 +507,110 @@ def printHandler(tokens):
     exprRes = solveExpression(tokens, 0)
     if exprRes == None:
         return
+    # bug fixed: print out a number will cause it convert to int
+    value = exprRes[0]
     if exprRes[1] == "NUM":
-        exprRes[0] = getNumberPrintFormat(exprRes[0])
-    print(exprRes[0])
+        value = getNumberPrintFormat(value)
+    print(value)
+    return True
+
+def staHandler(tokens):
+    global registers
+    if len(tokens) == 0:
+        print("Error: Expected identifier.")
+        return
+    exprRes = solveExpression(tokens, 0)
+    if exprRes == None:
+        return
+    if exprRes[1] != "NUM":
+        print("Error: Rigister A expected number.")
+        return
+    registers["A"] = exprRes[0]
+    return True
+
+def stsHandler(tokens):
+    global registers
+    if len(tokens) == 0:
+        print("Error: Expected identifier.")
+        return
+    exprRes = solveExpression(tokens, 0)
+    if exprRes == None:
+        return
+    if exprRes[1] != "NUM":
+        print("Error: Rigister A expected number.")
+        return
+    registers["S"] = exprRes[0]
+    return True
+
+def sttHandler(tokens):
+    global registers
+    if len(tokens) == 0:
+        print("Error: Expected identifier.")
+        return
+    exprRes = solveExpression(tokens, 0)
+    if exprRes == None:
+        return
+    if exprRes[1] != "NUM":
+        print("Error: Rigister A expected number.")
+        return
+    registers["T"] = exprRes[0]
+    return True
+
+def ldaHandler(tokens):
+    global registers
+    varName = None
+    if len(tokens) == 0:
+        print("Error: Expected identifier.")
+        return
+    elif len(tokens) == 1 and tokens[0][1] == "ID":
+        varName = tokens[0][0]
+    else:
+        varName = solveExpression(tokens, 0)[0]
+        if not(isValidIdentifier(varName)):
+            print(f"Error: {varName} is not a valid identifier.")
+            return
+    if getVarType(varName) != "NUM":
+        print(f"Error: Variable {varName} is not a number.")
+        return
+    executeTokens([["LET", "RESVD"], [varName, "ID"], ["=", "ASGN"], [registers["A"], "NUM"]])
+    return True
+
+def ldsHandler(tokens):
+    global registers
+    varName = None
+    if len(tokens) == 0:
+        print("Error: Expected identifier.")
+        return
+    elif len(tokens) == 1 and tokens[0][1] == "ID":
+        varName = tokens[0][0]
+    else:
+        varName = solveExpression(tokens, 0)[0]
+        if not(isValidIdentifier(varName)):
+            print(f"Error: {varName} is not a valid identifier.")
+            return
+    if getVarType(varName) != "NUM":
+        print(f"Error: Variable {varName} is not a number.")
+        return
+    executeTokens([["LET", "RESVD"], [varName, "ID"], ["=", "ASGN"], [registers["S"], "NUM"]])
+    return True
+
+def ldtHandler(tokens):
+    global registers
+    varName = None
+    if len(tokens) == 0:
+        print("Error: Expected identifier.")
+        return
+    elif len(tokens) == 1 and tokens[0][1] == "ID":
+        varName = tokens[0][0]
+    else:
+        varName = solveExpression(tokens, 0)[0]
+        if not(isValidIdentifier(varName)):
+            print(f"Error: {varName} is not a valid identifier.")
+            return
+    if getVarType(varName) != "NUM":
+        print(f"Error: Variable {varName} is not a number.")
+        return
+    executeTokens([["LET", "RESVD"], [varName, "ID"], ["=", "ASGN"], [registers["T"], "NUM"]])
     return True
 
 def getIdentifierValue(name):
