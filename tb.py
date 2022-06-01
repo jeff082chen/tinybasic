@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 import traceback
@@ -52,6 +53,7 @@ lines = {}
 maxLine = 0
 linePointer = 0
 stopExecution = False
+# change identifiers to be a list of set, in order to call subroutine
 identifiers = [{}]
 returnPos = []
 printReady = True
@@ -63,7 +65,8 @@ def main():
     while True:
             try:
                 if printReady:
-                    print("OK.")
+                    # not a bug fixed, just prefer this way
+                    print(">>>", end=" ")
                 nextLine = input()
                 if len(nextLine) > 0:
                     executeTokens(lex(nextLine))
@@ -74,7 +77,10 @@ def main():
             except EOFError:
                 print("Bye!")
                 break
-            except Exception as e:
+            except SystemExit:
+                print("Bye!")
+                break
+            except Exception as e: # show traceback when error occurs
                 error_class = e.__class__.__name__ #取得錯誤類型
                 detail = e.args[0] #取得詳細內容
                 cl, exc, tb = sys.exc_info() #取得Call Stack
@@ -85,12 +91,12 @@ def main():
                 errMsg = "File \"{}\", line {}, in {}: [{}] {}".format(fileName, lineNum, funcName, error_class, detail)
                 print("\nExecution halted:\n"+errMsg)
 
-def clearLines():
+def clearLines(): # clear all codes
     global lines, maxLine
     lines = {}
     maxLine = 0
 
-def resetExcution():
+def resetExcution(): # reset all variables and registers
     global identifiers, returnPos, registers
     identifiers = [{}]
     returnPos = []
@@ -128,7 +134,7 @@ def isValidIdentifier(token):
     return True
     
 def lex(line):
-    # Splitteo la linea en varios tokens       # why Spanish?
+    # Splitteo la linea en varios tokens  # split line into tokens
     inString = False
     tokens = []
     currentToken = ""
@@ -144,6 +150,8 @@ def lex(line):
             tokens.append([currentToken, "STRING"])
             currentToken = ""
             inString = False
+        # to make expressions like "(1 + 2) * 3" work
+        # parentesis don't have to separate with other tokens by spaces
         elif c in ['(', ')']:
             if len(currentToken) != 0:
                 tokens.append([currentToken, "TBD"])
@@ -165,7 +173,7 @@ def lex(line):
             token[1] = "RESVD" #Reserved word
         elif value in constants:
             token[0] = constants[value.upper()]
-            token[1] = "NUM" #Constant
+            token[1] = "NUM" #built-in constant
         elif value == "=":
             token[1] = "ASGN"
         elif isValidIdentifier(token[0]) and token[0] not in math_functions:
@@ -188,7 +196,6 @@ def executeTokens(tokens):
                 maxLine = lineNumber
         else:
             lines.pop(lineNumber, None)
-        printReady = False
         return
     if tokens[0][1] != "RESVD":
         # bug fixed: stopExecution when run into a non-reserved word
@@ -207,7 +214,7 @@ def executeTokens(tokens):
         elif command == "CLEAR":
             clearLines()
             resetExcution()
-        elif command == "DIR":
+        elif command == "DIR": # list all the variables and their values in the current scope
             print(identifiers[0])
         elif command == "LIST":
             i = 0
@@ -290,9 +297,16 @@ def saveHandler(tokens):
         print("Error: Invalid filename.")
         return False
     filename = tokens[0][0]
+    # if file extension not specified, add .tb
     if '.' not in filename:
         filename = filename + '.tb'
+    # if the file already exists, ask the user if he wants to overwrite it
+    if os.path.isfile(filename):
+        overwrite = input(f"File {filename} already exists. Overwrite? (y/n)")
+        if overwrite.lower() != "y":
+            return False
     with open(filename, 'w') as f:
+        # basicly copy from "LIST" command
         for i in range(maxLine + 1):
             if i in lines:
                 line = str(i)
@@ -318,10 +332,12 @@ def loadHandler(tokens):
         print("Error: Invalid filename.")
         return False
     filename = tokens[0][0]
+    # if file extension not specified, add .tb
     if '.' not in filename:
         filename = filename + '.tb'
     try:
         with open(filename, 'r') as f:
+            # basicly copy from "if tokens[0][1] == "NUM":" in executeTokens()
             clearLines()
             for line in f:
                 tokens = lex(line.strip())
@@ -364,9 +380,9 @@ def gosubHandler(tokens):
     if newNumber[1] != "NUM":
         print("Error: Line number expected.")
     else:
-        returnPos.insert(0, linePointer)
-        identifiers.insert(0, {})
-        linePointer = newNumber[0] - 1
+        returnPos.insert(0, linePointer) # push current line number to stack
+        identifiers.insert(0, {}) # variable scope for subroutine
+        linePointer = newNumber[0] - 1 # jump to subroutine
     return True
 
 def returnHandler():
@@ -374,7 +390,7 @@ def returnHandler():
     if len(returnPos) == 0:
         print("Error: Not in a subroutine.")
         return
-    linePointer = returnPos.pop(0)
+    linePointer = returnPos.pop(0) # pop current line number from stack
     identifiers.pop(0)
     return True
 
@@ -408,14 +424,15 @@ def inputHandler(tokens):
 def ifHandler(tokens):
     thenPos = elsePos = None
     for i in range(0, len(tokens)):
-        if tokens[i] == ["THEN", "RESVD"]:
+        if tokens[i] == ["THEN", "RESVD"]: # THEN is change to be a reserved word
             thenPos = i
             break
-    for i in range(0, len(tokens)):
+    for i in range(0, len(tokens)): # find the position of "ELSE"
         if tokens[i] == ["ELSE", "RESVD"]:
             elsePos = i
             break
-    if thenPos == None or (elsePos and thenPos > elsePos):
+    # if "THEN" is not found or "ELSE" is found before "THEN"
+    if thenPos == None or (elsePos and thenPos > elsePos): 
         print("Error: Malformed IF statement.")
         return
     exprValue = solveExpression(tokens[0:thenPos], 0)
@@ -426,7 +443,9 @@ def ifHandler(tokens):
             print("Error: Malformed IF statement.")
             return      
         executeTokens(tokens[thenPos+1:elsePos])
-    elif elsePos:
+    # if "ELSE" is found, and exprValue is False
+    # execute the expression after "ELSE"
+    elif elsePos: 
         if len(tokens[elsePos+1:]) == 0:
             print("Error: Malformed IF statement.")
             return
@@ -436,6 +455,7 @@ def ifHandler(tokens):
 def forHandler(tokens):
     global identifiers
     toPos = doPos = None
+    # find the position of "TO" and "DO"
     for i in range(0, len(tokens)):
         if tokens[i] == ["TO", "RESVD"]:
             toPos = i
@@ -447,8 +467,11 @@ def forHandler(tokens):
     if toPos == None or doPos == None or toPos > doPos:
         print("Error: Malformed FOR statement.")
         return 
+    # get a copy of global variables
     globalIdentifiers = identifiers[0].copy()
+    # set the iterator to the first value
     executeTokens([["LET", "RESVD"]] + tokens[0:toPos])
+    # calculate the end value
     endValue = solveExpression(tokens[toPos+1:doPos], 0)
     if endValue == None:
         return
@@ -456,10 +479,12 @@ def forHandler(tokens):
         print("Error: Expected number.")
         return
     endValue = endValue[0]
+    # execute the FOR statement
     while getIdentifierValue(tokens[0][0])[0] <= endValue:
         executeTokens(tokens[doPos+1:])
         tokens[toPos - 1][0] += 1
         executeTokens([["LET", "RESVD"]] + tokens[0:toPos])
+    # restore the global variables
     identifiers[0] = globalIdentifiers
     return True
 
@@ -514,6 +539,7 @@ def printHandler(tokens):
     print(value)
     return True
 
+# store number to rigister A
 def staHandler(tokens):
     global registers
     if len(tokens) == 0:
@@ -556,6 +582,7 @@ def sttHandler(tokens):
     registers["T"] = exprRes[0]
     return True
 
+# load number from rigister A
 def ldaHandler(tokens):
     global registers
     varName = None
@@ -626,14 +653,17 @@ def solveExpression(tokens, level):
                 print(f"Error: Unknown operand {tokens[i][0]}")
                 return None
             elif tokens[i][1] == "PAREN":
+                # find the matching close parentheses
                 close = findMatchingClose(tokens, i)
                 if close == None:
                     print("Error: Unmatched parentheses.")
                     return None
+                # solve the expression inside the parentheses
                 subExpr = solveExpression(tokens[i+1:close], 0)
                 if subExpr == None:
                     return None
                 leftSideValues.append(subExpr)
+                # continue to the next token
                 i = close
             elif tokens[i][1] == "OP" and tokens[i][0] in operators[level]:
                 exprResL = None
@@ -734,6 +764,7 @@ def solveExpression(tokens, level):
                         return None
                     else:
                         return [exprResL[0] >= exprResR[0], "NUM"]
+                # operator <<
                 elif tokens[i][0] == "<<":
                     if exprResL == None or exprResR == None:
                         print("Error: Operator expects value.")
@@ -745,6 +776,7 @@ def solveExpression(tokens, level):
                         print("Error: Operand type mismatch.")
                         return None
                     return [float(int(exprResL[0]) << int(exprResR[0])), "NUM"]
+                # operator >>
                 elif tokens[i][0] == ">>":
                     if exprResL == None or exprResR == None:
                         print("Error: Operator expects value.")
@@ -786,7 +818,9 @@ def solveExpression(tokens, level):
                         if exprResR[1] == "NUM":
                             value2 = str(getNumberPrintFormat(value2))
                         return [value1 + value2, "STRING"]
+                # operator !
                 elif tokens[i][0] == "!":
+                    # as an unary operator, ! only takes one argument
                     if exprResR == None:
                         print("Error: Operator expects value.")
                         return None
@@ -798,6 +832,7 @@ def solveExpression(tokens, level):
                     else:
                         print("Error: Operand type mismatch.")
                         return None
+                # math function also handle as a unary operator
                 elif tokens[i][0] in math_functions:
                     if exprResR == None:
                         print("Error: Operator expects value.")
