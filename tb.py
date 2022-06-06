@@ -9,14 +9,26 @@ math_functions = {
     "COS": math.cos,
     "SIN": math.sin,
     "TAN": math.tan,
+    "ACOS": math.acos,
+    "ASIN": math.asin,
+    "ATAN": math.atan,
     "COSH": math.cosh,
     "SINH": math.sinh,
     "TANH": math.tanh,
-    "ABS": abs,
+    "ACOSH": math.acosh,
+    "ASINH": math.asinh,
+    "ATANH": math.atanh,
+    "DEG": math.degrees,
+    "RAD": math.radians,
+    "ABS": math.fabs,
     "SQRT": math.sqrt,
     "LOG": math.log,
+    "LOG2": math.log2,
+    "LOG10": math.log10,
     "EXP": math.exp,
-    "ROUND": round
+    "ROUND": lambda x: float(round(x)),
+    "CEIL": lambda x: float(math.ceil(x)),
+    "FLOOR": lambda x: float(math.floor(x))
 }
 
 reserved = [
@@ -46,7 +58,8 @@ operators = [
 
 constants = {
     "PI": math.pi,
-    "E": math.e
+    "E": math.e,
+    "TAU": math.tau,
 }
 
 lines = {}
