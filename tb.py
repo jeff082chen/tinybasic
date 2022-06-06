@@ -2,6 +2,7 @@ import os
 import sys
 import math
 import traceback
+from getch import getch
 
 VERSION = 2
 
@@ -71,6 +72,53 @@ identifiers = [{}]
 returnPos = []
 printReady = True
 
+commands = [""]
+currentCommand = 0
+
+def clearCommand():
+    # clear current line in stdout
+    print("\x1b[1K\r", end = "", flush = True)
+    print("\>", end = " ", flush = True)
+
+# function to get input command
+# can repeat commands had been executed by up and down arrow
+def getInputCommand():
+    global commands, currentCommand
+    ss = None
+    while True:
+        c = getch()
+        if c == "\x1b":
+            c += getch()
+            c += getch()
+            if c == '\x1b[A': # up arrow
+                if currentCommand <= 0: continue
+                currentCommand -= 1
+            if c == '\x1b[B': # down arrow
+                if currentCommand >= len(commands) - 1: continue
+                currentCommand += 1
+            clearCommand()
+            print(commands[currentCommand], end = "", flush = True)
+            ss = commands[currentCommand]
+        elif c == "\r": # enter
+            print()
+            if ss is not None: # if there is a command in ss, return it
+                commands.insert(-1, ss)
+                currentCommand = len(commands) - 1
+                return ss
+            else: # if there is no command in ss, return empty string
+                return ""
+        elif c == "\x04": # ctrl + d
+            return "EXIT"
+        # if c is a back space, delete the last character
+        elif c == "\x7f":
+            if ss is not None:
+                ss = ss[:-1]
+                clearCommand()
+                print(ss, end = "", flush = True)
+        else: # if c is a normal character, add it to ss
+            print(c, end = "", flush = True)
+            ss = ss + c if ss is not None else c
+
 def main():
     global stopExecution
     print(f"Tiny BASIC version {VERSION}\nby Jeffrey Chen")
@@ -79,8 +127,8 @@ def main():
             try:
                 if printReady:
                     # not a bug fixed, just prefer this way
-                    print(">>>", end=" ")
-                nextLine = input()
+                    print("\>", end = " ", flush = True)
+                nextLine = getInputCommand()
                 if len(nextLine) > 0:
                     executeTokens(lex(nextLine))
                     # bug fixed: reset stopExecution when a command is done
