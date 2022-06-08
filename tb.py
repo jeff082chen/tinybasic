@@ -1,6 +1,7 @@
 import os
 import sys
 import math
+import platform
 import traceback
 from getch import getch
 
@@ -77,47 +78,60 @@ currentCommand = 0
 
 def clearCommand():
     # clear current line in stdout
-    print("\x1b[1K\r", end = "", flush = True)
+    if platform.system() == "Windows":
+        print("\r" + ' ' * 64 + "\r", end = "", flush = True)
+    else:
+        print("\x1b[1K\r", end = "", flush = True)
     print("\>", end = " ", flush = True)
+
+key = {
+    "special": b'\xe0' if platform.system() == "Windows" else '\x1b',
+    "enter": b'\x0d' if platform.system() == "Windows" else '\x0d',
+    "backspace": b'\x08' if platform.system() == "Windows" else '\x7f',
+    "ctrl+d": b'\x04' if platform.system() == "Windows" else '\x04',
+    "up": b'\xe0H' if platform.system() == "Windows" else '\x1b[A',
+    "down": b'\xe0P' if platform.system() == "Windows" else '\x1b[B'
+}
 
 # function to get input command
 # can repeat commands had been executed by up and down arrow
-def getInputCommand():
+def getInput():
     global commands, currentCommand
-    ss = None
+    ss = ""
     while True:
         c = getch()
-        if c == "\x1b":
-            c += getch()
-            c += getch()
-            if c == '\x1b[A': # up arrow
+        if c == key["special"]:
+            if platform.system() == "Windows": c += getch()
+            else: c += getch() + getch()
+            if c == key['up']:
                 if currentCommand <= 0: continue
                 currentCommand -= 1
-            if c == '\x1b[B': # down arrow
+            if c == key['down']:
                 if currentCommand >= len(commands) - 1: continue
                 currentCommand += 1
             clearCommand()
             print(commands[currentCommand], end = "", flush = True)
             ss = commands[currentCommand]
-        elif c == "\r": # enter
+        elif c == key['enter']:
             print()
-            if ss is not None: # if there is a command in ss, return it
-                commands.insert(-1, ss)
+            if ss: # if there is a command in ss, return it
+                commands.insert(-1, ss.strip())
                 currentCommand = len(commands) - 1
                 return ss
             else: # if there is no command in ss, return empty string
                 return ""
-        elif c == "\x04": # ctrl + d
+        elif c == key['ctrl+d']:
             return "EXIT"
         # if c is a back space, delete the last character
-        elif c == "\x7f":
-            if ss is not None:
+        elif c == key['backspace']:
+            if ss:
                 ss = ss[:-1]
                 clearCommand()
                 print(ss, end = "", flush = True)
         else: # if c is a normal character, add it to ss
+            if platform.system() == "Windows": c = c.decode('utf-8')
             print(c, end = "", flush = True)
-            ss = ss + c if ss is not None else c
+            ss = ss + c
 
 def main():
     global stopExecution
@@ -128,7 +142,7 @@ def main():
                 if printReady:
                     # not a bug fixed, just prefer this way
                     print("\>", end = " ", flush = True)
-                nextLine = getInputCommand()
+                nextLine = getInput()
                 if len(nextLine) > 0:
                     executeTokens(lex(nextLine))
                     # bug fixed: reset stopExecution when a command is done
