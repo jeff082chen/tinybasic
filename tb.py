@@ -227,7 +227,7 @@ def lex(line):
             inString = False
         # to make expressions like "(1 + 2) * 3" work
         # parentesis don't have to separate with other tokens by spaces
-        elif c in ['(', ')']:
+        elif not(inString) and  c in ['(', ')']:
             if len(currentToken) != 0:
                 tokens.append([currentToken, "TBD"])
                 currentToken = ""
@@ -542,8 +542,10 @@ def forHandler(tokens):
     if toPos == None or doPos == None or toPos > doPos:
         print("Error: Malformed FOR statement.")
         return 
-    # get a copy of global variables
-    globalIdentifiers = identifiers[0].copy()
+    # get a copy of iterator variable
+    iterVar = None
+    if getIdentifierValue(tokens[0][0]) != None:
+        iterVar = getIdentifierValue(tokens[0][0])
     # set the iterator to the first value
     executeTokens([["LET", "RESVD"]] + tokens[0:toPos])
     # calculate the end value
@@ -559,8 +561,9 @@ def forHandler(tokens):
         executeTokens(tokens[doPos+1:])
         tokens[toPos - 1][0] += 1
         executeTokens([["LET", "RESVD"]] + tokens[0:toPos])
-    # restore the global variables
-    identifiers[0] = globalIdentifiers
+    # restore the iterator variable
+    if iterVar != None:
+        executeTokens([["LET", "RESVD"]] + tokens[0:toPos - 1] + [iterVar])
     return True
 
 def letHandler(tokens):
@@ -716,7 +719,10 @@ def ldtHandler(tokens):
     return True
 
 def getIdentifierValue(name):
-    return identifiers[0][name]
+    try:
+        return identifiers[0][name].copy()
+    except KeyError:
+        return None
 
 def solveExpression(tokens, level):
     leftSideValues = []
