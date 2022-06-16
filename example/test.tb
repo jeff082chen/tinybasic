@@ -1,0 +1,30 @@
+10  REM +--------------------+
+20  REM |Tiny BASIC test code|
+30  REM +--------------------+
+40  LET a = 10
+50  INPUT b
+60  FOR a = 1 TO b DO PRINT a
+70  INPUT c
+80  IF !(a < c) THEN GOTO 70 ELSE PRINT c
+90  INPUT d
+100 STA d
+110 GOSUB 170
+120 PRINT "a = " . a
+130 END
+140 REM +--------------+
+150 REM |SUBROUTINE 170|
+160 REM +--------------+
+170 LET a = 20
+180 LDA d
+190 PRINT ((1 << 1) + 2 * (1 + (8 >> 2))) * (a + d)
+200 GOSUB 280
+210 LDS e
+220 PRINT e
+230 IF !(10 > 20) THEN PRINT "hello world"
+240 RETURN
+250 REM +--------------+
+260 REM |SUBROUTINE 280|
+270 REM +--------------+
+280 STS COS(PI) + LOG(E)
+290 FOR i = 1 TO 3 DO PRINT "Test " . i
+300 RETURN

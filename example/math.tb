@@ -1,0 +1,28 @@
+10 REM +----------------+
+20 REM | math functions |
+30 REM +----------------+
+40 PRINT "COS(PI) = " . COS(PI)
+50 PRINT "SIN(PI / 2) = " . SIN(PI / 2)
+60 PRINT "TAN(PI / 4) = " . TAN(PI / 4)
+70 PRINT "ACOS(-1) = " . ACOS(-1)
+80 PRINT "ASIN(1) = " . ASIN(1)
+90 PRINT "ATAN(0) = " . ATAN(0)
+100 PRINT "COSH(1) = " . COSH(1)
+110 PRINT "SINH(0) = " . SINH(0)
+120 PRINT "TANH(0) = " . TANH(0)
+130 PRINT "ACOSH(1) = " . ACOSH(1)
+140 PRINT "ASINH(0) = " . ASINH(0)
+150 PRINT "ATANH(0) = " . ATANH(0)
+160 PRINT "DEG(PI / 2) = " . DEG(PI / 2)
+170 PRINT "RAD(180) = " . RAD(180)
+180 PRINT "ABS(-1) = " . ABS(-1)
+190 PRINT "SQRT(4) = " . SQRT(4)
+200 PRINT "LOG(E) = " . LOG(E)
+210 PRINT "LOG2(8) = " . LOG2(8)
+220 PRINT "LOG10(100) = " . LOG10(100)
+230 PRINT "EXP(1) = " . EXP(1)
+240 PRINT "ROUND(1.5) = " . ROUND(1.5)
+250 PRINT "ROUND(1.4) = " . ROUND(1.4)
+260 PRINT "CEIL(1.1) = " . CEIL(1.1)
+270 PRINT "FLOOR(1.1) = " . FLOOR(1.1)
+280 END

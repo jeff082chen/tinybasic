@@ -1,0 +1,7 @@
+10 REM +-----------+
+20 REM | operators |
+30 REM +-----------+
+40 INPUT a
+50 PRINT (a + 3) * 20
+60 IF !(a < 10) THEN PRINT a >> 1 ELSE PRINT a << 1
+70 END

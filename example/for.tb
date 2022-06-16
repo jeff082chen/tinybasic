@@ -1,0 +1,9 @@
+10 REM +----------------+
+20 REM | for statements |
+30 REM +----------------+
+40 LET a = 10
+50 PRINT "in global scope, a = " . a
+60 INPUT b
+70 FOR a = 1 TO b DO PRINT "a = " . a
+80 PRINT "after leave the scope, a = " . a
+90 END

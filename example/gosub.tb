@@ -1,0 +1,31 @@
+10  REM +--------------+
+20  REM | main program |
+30  REM +--------------+
+40  LET a = 10
+50  PRINT "In global: a = " . a
+60  GOSUB 120
+70  PRINT "In global: a = " . a
+80  END
+90  REM +--------------+
+100 REM | subroutine 1 |
+110 REM +--------------+
+120 LET a = 20
+130 PRINT "In sub 1: a = " . a
+140 GOSUB 200
+150 PRINT "In sub 1: a = " . a
+160 RETURN
+170 REM +--------------+
+180 REM | subroutine 2 |
+190 REM +--------------+
+200 LET a = 30
+210 PRINT "In sub 2: a = " . a
+220 GOSUB 280
+230 PRINT "In sub 2: a = " . a
+240 RETURN
+250 REM +--------------+
+260 REM | subroutine 3 |
+270 REM +--------------+
+280 LET a = 40
+290 PRINT "In sub 3: a = " . a
+300 RETURN
+

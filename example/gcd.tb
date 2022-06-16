@@ -1,0 +1,22 @@
+10 REM +-------------+
+20 REM | GCD program |
+30 REM +-------------+
+40 PRINT "Enter two numbers: "
+50 INPUT A
+60 INPUT B
+70 STS A
+80 STT B
+90 GOSUB 150
+100 LDS GCD
+110 PRINT "The GCD is: " . GCD
+120 END 
+130 REM +--------------+
+140 REM | GCD function |
+150 REM +--------------+
+160 LDT B
+170 IF B == 0 THEN RETURN
+180 LDS A
+190 STS B
+200 STT A % B
+210 GOSUB 150
+220 RETURN

@@ -1,0 +1,26 @@
+10  REM +-------------------+
+20  REM | Fibonacci program |
+30  REM +-------------------+
+40  PRINT "Enter a number: "
+50  INPUT n
+60  IF n < 1 THEN PRINT "Number must be greater than 0"
+70  IF n < 1 THEN GOTO 50
+80  STA n
+90  GOSUB 160
+100 LDA fibbo
+110 PRINT "No." . n ." Fibonacci number is: " . fibbo
+120 END
+130 REM +--------------------+
+140 REM | Fibonacci function |
+150 REM +--------------------+
+160 LDA n
+170 IF n < 2 THEN RETURN
+180 STA n - 1
+190 GOSUB 160
+200 LDA a
+210 STA n - 2
+220 GOSUB 160
+230 LDA b
+240 STA a + b
+250 RETURN
+

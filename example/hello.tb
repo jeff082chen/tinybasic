@@ -1,0 +1,7 @@
+10 REM +-------------+
+20 REM | hello world |
+30 REM +-------------+
+40 LET hello$ = "hello world"
+50 PRINT hello$
+60 SAVE "new_hello.tb"
+70 END

@@ -1,0 +1,8 @@
+10 REM +--------------------+
+20 REM | if else statements |
+30 REM +--------------------+
+40 LET a = 10
+50 PRINT "input a number"
+60 INPUT b
+70 IF a > b THEN GOTO 50 ELSE PRINT b . " is bigger than 10"
+80 END
